@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.maotuanzi.mapper.Model3DTaskMapper">
+
+    <resultMap id="BaseResultMap" type="com.maotuanzi.entity.Model3DTask">
+        <id column="id" property="id"/>
+        <result column="task_id" property="taskId"/>
+        <result column="user_id" property="userId"/>
+        <result column="source_image_url" property="sourceImageUrl"/>
+        <result column="style" property="style"/>
+        <result column="status" property="status"/>
+        <result column="model_url" property="modelUrl"/>
+        <result column="oss_key" property="ossKey"/>
+        <result column="error_msg" property="errorMsg"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.maotuanzi.entity.Model3DTask" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO model3d_tasks (task_id, user_id, source_image_url, style, status)
+        VALUES (#{taskId}, #{userId}, #{sourceImageUrl}, #{style}, #{status})
+    </insert>
+
+    <update id="updateResult">
+        UPDATE model3d_tasks
+        <set>
+            status = #{status},
+            <if test="modelUrl != null">model_url = #{modelUrl},</if>
+            <if test="ossKey != null">oss_key = #{ossKey},</if>
+            <if test="errorMsg != null">error_msg = #{errorMsg},</if>
+        </set>
+        WHERE task_id = #{taskId}
+    </update>
+
+    <select id="selectByTaskId" resultMap="BaseResultMap">
+        SELECT * FROM model3d_tasks WHERE task_id = #{taskId} LIMIT 1
+    </select>
+
+</mapper>
