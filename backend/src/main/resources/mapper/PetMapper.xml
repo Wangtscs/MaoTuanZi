@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.maotuanzi.mapper.PetMapper">
+    <resultMap id="BaseResultMap" type="com.maotuanzi.entity.Pet">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="nickname" property="nickname"/>
+        <result column="species" property="species"/>
+        <result column="breed_id" property="breedId"/>
+        <result column="breed_name" property="breedName"/>
+        <result column="gender" property="gender"/>
+        <result column="birthday" property="birthday"/>
+        <result column="weight_kg" property="weightKg"/>
+        <result column="is_neutered" property="isNeutered"/>
+        <result column="allergies" property="allergies"/>
+        <result column="staple_food" property="stapleFood"/>
+        <result column="avatar_url" property="avatarUrl"/>
+        <result column="remark" property="remark"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="deleted_at" property="deletedAt"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.maotuanzi.entity.Pet" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO pets (user_id, nickname, species, breed_id, breed_name, gender,
+                          birthday, weight_kg, is_neutered, allergies, staple_food, avatar_url, remark)
+        VALUES (#{userId}, #{nickname}, #{species}, #{breedId}, #{breedName}, #{gender},
+                #{birthday}, #{weightKg}, #{isNeutered}, #{allergies}, #{stapleFood}, #{avatarUrl}, #{remark})
+    </insert>
+
+    <update id="updateById" parameterType="com.maotuanzi.entity.Pet">
+        UPDATE pets
+        <set>
+            <if test="nickname != null">nickname = #{nickname},</if>
+            <if test="species != null">species = #{species},</if>
+            <if test="breedId != null">breed_id = #{breedId},</if>
+            <if test="breedName != null">breed_name = #{breedName},</if>
+            <if test="gender != null">gender = #{gender},</if>
+            <if test="birthday != null">birthday = #{birthday},</if>
+            <if test="weightKg != null">weight_kg = #{weightKg},</if>
+            <if test="isNeutered != null">is_neutered = #{isNeutered},</if>
+            <if test="allergies != null">allergies = #{allergies},</if>
+            <if test="stapleFood != null">staple_food = #{stapleFood},</if>
+            <if test="avatarUrl != null">avatar_url = #{avatarUrl},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        WHERE id = #{id} AND deleted_at IS NULL
+    </update>
+
+    <update id="softDelete">
+        UPDATE pets SET deleted_at = #{now} WHERE id = #{id}
+    </update>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM pets WHERE id = #{id} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT * FROM pets WHERE user_id = #{userId} AND deleted_at IS NULL ORDER BY id ASC
+    </select>
+
+    <select id="countByUserId" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM pets WHERE user_id = #{userId} AND deleted_at IS NULL
+    </select>
+</mapper>

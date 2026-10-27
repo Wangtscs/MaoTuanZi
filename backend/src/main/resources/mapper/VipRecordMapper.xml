@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.maotuanzi.mapper.VipRecordMapper">
+    <insert id="insert" parameterType="com.maotuanzi.entity.VipRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vip_records (user_id, order_id, change_type, vip_level_before, vip_level_after,
+                                 expire_before, expire_after, duration_days, amount_cents, remark)
+        VALUES (#{userId}, #{orderId}, #{changeType}, #{vipLevelBefore}, #{vipLevelAfter},
+                #{expireBefore}, #{expireAfter}, #{durationDays}, #{amountCents}, #{remark})
+    </insert>
+
+    <select id="selectByUserId" resultType="com.maotuanzi.entity.VipRecord">
+        SELECT * FROM vip_records WHERE user_id = #{userId} ORDER BY id DESC LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countByUserId" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM vip_records WHERE user_id = #{userId}
+    </select>
+</mapper>

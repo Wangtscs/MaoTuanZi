@@ -1,0 +1,8 @@
+{
+  "string": [
+    { "name": "app_name", "value": "毛团子AI" },
+    { "name": "module_desc", "value": "毛团子AI 主模块" },
+    { "name": "EntryAbility_desc", "value": "毛团子AI 启动入口" },
+    { "name": "EntryAbility_label", "value": "毛团子AI" }
+  ]
+}

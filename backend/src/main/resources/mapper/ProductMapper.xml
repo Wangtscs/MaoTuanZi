@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.maotuanzi.mapper.ProductMapper">
+    <resultMap id="BaseResultMap" type="com.maotuanzi.entity.Product">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="description" property="description"/>
+        <result column="product_type" property="productType"/>
+        <result column="price_cents" property="priceCents"/>
+        <result column="original_price_cents" property="originalPriceCents"/>
+        <result column="duration_days" property="durationDays"/>
+        <result column="quota_count" property="quotaCount"/>
+        <result column="quota_period" property="quotaPeriod"/>
+        <result column="vip_level_required" property="vipLevelRequired"/>
+        <result column="image_url" property="imageUrl"/>
+        <result column="is_active" property="isActive"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM products WHERE id = #{id}
+    </select>
+
+    <select id="selectActive" resultMap="BaseResultMap">
+        SELECT * FROM products WHERE is_active = 1
+        <if test="type != null">AND product_type = #{type}</if>
+        ORDER BY sort_order ASC
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT * FROM products
+        <where>
+            <if test="type != null">product_type = #{type}</if>
+            <if test="keyword != null and keyword != ''">
+                AND name LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+        </where>
+        ORDER BY sort_order ASC LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countAll" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM products
+        <where>
+            <if test="type != null">product_type = #{type}</if>
+            <if test="keyword != null and keyword != ''">
+                AND name LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+        </where>
+    </select>
+
+    <update id="updateById" parameterType="com.maotuanzi.entity.Product">
+        UPDATE products
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="priceCents != null">price_cents = #{priceCents},</if>
+            <if test="originalPriceCents != null">original_price_cents = #{originalPriceCents},</if>
+            <if test="durationDays != null">duration_days = #{durationDays},</if>
+            <if test="quotaCount != null">quota_count = #{quotaCount},</if>
+            <if test="isActive != null">is_active = #{isActive},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <insert id="insert" parameterType="com.maotuanzi.entity.Product">
+        INSERT INTO products (id, name, description, product_type, price_cents, original_price_cents,
+                              duration_days, quota_count, quota_period, vip_level_required,
+                              image_url, is_active, sort_order)
+        VALUES (#{id}, #{name}, #{description}, #{productType}, #{priceCents}, #{originalPriceCents},
+                #{durationDays}, #{quotaCount}, #{quotaPeriod}, #{vipLevelRequired},
+                #{imageUrl}, #{isActive}, #{sortOrder})
+    </insert>
+</mapper>

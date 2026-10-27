@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.maotuanzi.mapper.UserMapper">
+
+    <resultMap id="BaseResultMap" type="com.maotuanzi.entity.User">
+        <id column="id" property="id"/>
+        <result column="openid" property="openid"/>
+        <result column="unionid" property="unionid"/>
+        <result column="nickname" property="nickname"/>
+        <result column="avatar_url" property="avatarUrl"/>
+        <result column="phone" property="phone"/>
+        <result column="gender" property="gender"/>
+        <result column="status" property="status"/>
+        <result column="vip_level" property="vipLevel"/>
+        <result column="vip_expire_at" property="vipExpireAt"/>
+        <result column="invite_code" property="inviteCode"/>
+        <result column="inviter_id" property="inviterId"/>
+        <result column="register_source" property="registerSource"/>
+        <result column="last_login_at" property="lastLoginAt"/>
+        <result column="agreement_version" property="agreementVersion"/>
+        <result column="agreement_accepted_at" property="agreementAcceptedAt"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="deleted_at" property="deletedAt"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.maotuanzi.entity.User" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO users (openid, unionid, nickname, avatar_url, phone, gender,
+                           status, vip_level, vip_expire_at, register_source, agreement_version)
+        VALUES (#{openid}, #{unionid}, #{nickname}, #{avatarUrl}, #{phone}, #{gender},
+                #{status}, #{vipLevel}, #{vipExpireAt}, #{registerSource}, #{agreementVersion})
+    </insert>
+
+    <update id="updateById" parameterType="com.maotuanzi.entity.User">
+        UPDATE users
+        <set>
+            <if test="nickname != null">nickname = #{nickname},</if>
+            <if test="avatarUrl != null">avatar_url = #{avatarUrl},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="gender != null">gender = #{gender},</if>
+            <if test="status != null">status = #{status},</if>
+        </set>
+        WHERE id = #{id} AND deleted_at IS NULL
+    </update>
+
+    <update id="updateStatus">
+        UPDATE users SET status = #{status}, deleted_at = CASE WHEN #{status} = 2 THEN NOW() ELSE NULL END
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateVip">
+        UPDATE users SET vip_level = #{vipLevel}, vip_expire_at = #{vipExpireAt}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateLastLogin">
+        UPDATE users SET last_login_at = #{time} WHERE id = #{id}
+    </update>
+
+    <update id="updateAgreement">
+        UPDATE users SET agreement_version = #{version}, agreement_accepted_at = NOW() WHERE id = #{id}
+    </update>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM users WHERE id = #{id} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectByOpenid" resultMap="BaseResultMap">
+        SELECT * FROM users WHERE openid = #{openid} LIMIT 1
+    </select>
+
+    <select id="selectByInviteCode" resultMap="BaseResultMap">
+        SELECT * FROM users WHERE invite_code = #{inviteCode} LIMIT 1
+    </select>
+
+    <update id="updateInviteCode">
+        UPDATE users SET invite_code = #{inviteCode} WHERE id = #{id}
+    </update>
+
+    <update id="updateInviter">
+        UPDATE users SET inviter_id = #{inviterId} WHERE id = #{id}
+    </update>
+
+    <select id="countInvited" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM users WHERE inviter_id = #{inviterId} AND deleted_at IS NULL
+    </select>
+
+    <select id="countByStatus" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM users WHERE status = #{status} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectByPage" resultMap="BaseResultMap">
+        SELECT * FROM users
+        <where>
+            deleted_at IS NULL
+            <if test="keyword != null and keyword != ''">
+                AND (nickname LIKE CONCAT('%', #{keyword}, '%') OR phone LIKE CONCAT('%', #{keyword}, '%') OR openid LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+        ORDER BY id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countByPage" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM users
+        <where>
+            deleted_at IS NULL
+            <if test="keyword != null and keyword != ''">
+                AND (nickname LIKE CONCAT('%', #{keyword}, '%') OR phone LIKE CONCAT('%', #{keyword}, '%') OR openid LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+    </select>
+
+</mapper>

@@ -1,0 +1,22 @@
+{
+  "schema_version":"1.0.0",
+  "adapter":"external-browser-observation",
+  "run_id":"run_000038bqcwpz2mmqyg8xsg1jdr",
+  "case_id":"case_000038bqcwpz5g7wzdcr8dphxm",
+  "spec_hash":"8d7f896ad7766ec55af8592efc68328d7231e1d6c1a91d282f46d7c48b156b1f",
+  "state_revision":25,
+  "layers":["L4","L7"],
+  "tool_version":"Node test runner; JDK17 Maven Surefire; Vite5.4.21; Playwright with installed Chrome",
+  "environment":"Windows local; browser ops API intercepted by fixtures; backend controlled dependencies; no deployment",
+  "started_at":"2026-10-26T08:28:15Z",
+  "finished_at":"2026-10-26T08:56:30Z",
+  "checkpoints":[
+    {"name":"Local regression","kind":"test-output","before":"Current implementation awaiting verification","after":"Node25 passed; Maven19 passed; production build passed"},
+    {"name":"Browser route states","kind":"fixture-browser","before":"18 routes at desktop1440 and mobile390","after":"36 views no overflow; 18 empty and18 HTTP503 feedback; stale log retained;14 cancellations no writes;0 page errors"}
+  ],
+  "assertions":[
+    {"statement":"Local browser and targeted regression evidence is available","passed":true,"layer":"L4","requirement_refs":["ac_000038bq62x004nz2ezxb62kjw","observable","variant:happy"],"actual":"25 frontend and19 backend checks passed; final build11.82s; fixture smoke recorded at all-routes-fixture-validation.json; independent-review.md available","expected":"Actual local checks and clearly scoped browser observations"},
+    {"statement":"Complete commercial environment acceptance remains unverified","passed":false,"layer":"L7","requirement_refs":["ac_000038bq62x004nz2ezxb62kjw","observable","variant:happy"],"actual":"No real MySQL Redis integration, external notification delivery, provider cost or production acceptance was performed","expected":"Full commercial acceptance requires configured real dependencies and actual end-to-end evidence"}
+  ],
+  "redaction_status":"passed"
+}

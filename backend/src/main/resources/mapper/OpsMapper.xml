@@ -1,0 +1,603 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.maotuanzi.mapper.OpsMapper">
+
+    <!-- ==================== 实例 ==================== -->
+    <insert id="upsertInstance" parameterType="com.maotuanzi.entity.OpsInstance">
+        INSERT INTO ops_instances
+        (instance_id, app_name, profile, host, ip, port, pid, version, status,
+         cpu_load, system_cpu_load, heap_used_mb, heap_max_mb, heap_used_pct,
+         thread_count, qps, error_rate, started_at, last_heartbeat_at)
+        VALUES
+        (#{instanceId}, #{appName}, #{profile}, #{host}, #{ip}, #{port}, #{pid}, #{version}, #{status},
+         #{cpuLoad}, #{systemCpuLoad}, #{heapUsedMb}, #{heapMaxMb}, #{heapUsedPct},
+         #{threadCount}, #{qps}, #{errorRate}, #{startedAt}, #{lastHeartbeatAt})
+        ON DUPLICATE KEY UPDATE
+        app_name = VALUES(app_name),
+        profile = VALUES(profile),
+        host = VALUES(host),
+        ip = VALUES(ip),
+        port = VALUES(port),
+        pid = VALUES(pid),
+        version = VALUES(version),
+        status = VALUES(status),
+        cpu_load = VALUES(cpu_load),
+        system_cpu_load = VALUES(system_cpu_load),
+        heap_used_mb = VALUES(heap_used_mb),
+        heap_max_mb = VALUES(heap_max_mb),
+        heap_used_pct = VALUES(heap_used_pct),
+        thread_count = VALUES(thread_count),
+        qps = VALUES(qps),
+        error_rate = VALUES(error_rate),
+        started_at = VALUES(started_at),
+        last_heartbeat_at = VALUES(last_heartbeat_at)
+    </insert>
+
+    <select id="selectInstances" resultType="com.maotuanzi.entity.OpsInstance">
+        SELECT * FROM ops_instances ORDER BY last_heartbeat_at DESC
+    </select>
+
+    <delete id="deleteStaleInstances">
+        DELETE FROM ops_instances
+        WHERE (last_heartbeat_at IS NULL OR last_heartbeat_at &lt; #{before})
+        <![CDATA[ AND instance_id <> #{exclude} ]]>
+    </delete>
+
+    <!-- ==================== 指标快照 ==================== -->
+    <insert id="batchInsertSnapshots">
+        INSERT INTO ops_metric_snapshots (instance_id, metric_key, metric_value, sample_time)
+        VALUES
+        <foreach collection="list" item="s" separator=",">
+            (#{s.instanceId}, #{s.metricKey}, #{s.metricValue}, #{s.sampleTime})
+        </foreach>
+    </insert>
+
+    <select id="selectSnapshots" resultType="java.util.LinkedHashMap">
+        SELECT metric_key AS metricKey, sample_time AS sampleTime,
+               AVG(metric_value) AS metricValue,
+               MAX(metric_value) AS maxValue,
+               MIN(metric_value) AS minValue
+        FROM ops_metric_snapshots
+        WHERE sample_time BETWEEN #{from} AND #{to}
+        <if test="keys != null and keys.size() > 0">
+            AND metric_key IN
+            <foreach collection="keys" item="k" open="(" separator="," close=")">#{k}</foreach>
+        </if>
+        GROUP BY metric_key, sample_time
+        ORDER BY sample_time ASC
+    </select>
+
+    <delete id="deleteSnapshotsBefore">
+        DELETE FROM ops_metric_snapshots WHERE sample_time &lt; #{before}
+    </delete>
+
+    <!-- ==================== 告警规则 ==================== -->
+    <sql id="alarmRuleColumns">
+        id, name, metric_key, operator, threshold, duration_checks, level, enabled,
+        silence_minutes, channels, description, last_value, last_check_at, firing,
+        created_by, created_at, updated_at
+    </sql>
+
+    <select id="selectAlarmRules" resultType="com.maotuanzi.entity.OpsAlarmRule">
+        SELECT <include refid="alarmRuleColumns"/> FROM ops_alarm_rules
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (name LIKE CONCAT('%', #{keyword}, '%') OR metric_key LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="enabled != null">AND enabled = #{enabled}</if>
+        </where>
+        ORDER BY level ASC, id ASC
+    </select>
+
+    <select id="selectAlarmRule" resultType="com.maotuanzi.entity.OpsAlarmRule">
+        SELECT <include refid="alarmRuleColumns"/> FROM ops_alarm_rules WHERE id = #{id}
+    </select>
+
+    <insert id="insertAlarmRule" parameterType="com.maotuanzi.entity.OpsAlarmRule" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ops_alarm_rules
+        (name, metric_key, operator, threshold, duration_checks, level, enabled,
+         silence_minutes, channels, description, created_by)
+        VALUES
+        (#{name}, #{metricKey}, #{operator}, #{threshold}, #{durationChecks}, #{level}, #{enabled},
+         #{silenceMinutes}, #{channels}, #{description}, #{createdBy})
+    </insert>
+
+    <update id="updateAlarmRule" parameterType="com.maotuanzi.entity.OpsAlarmRule">
+        UPDATE ops_alarm_rules
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="metricKey != null">metric_key = #{metricKey},</if>
+            <if test="operator != null">operator = #{operator},</if>
+            <if test="threshold != null">threshold = #{threshold},</if>
+            <if test="durationChecks != null">duration_checks = #{durationChecks},</if>
+            <if test="level != null">level = #{level},</if>
+            <if test="enabled != null">enabled = #{enabled},</if>
+            <if test="silenceMinutes != null">silence_minutes = #{silenceMinutes},</if>
+            <if test="channels != null">channels = #{channels},</if>
+            <if test="description != null">description = #{description},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteAlarmRule">DELETE FROM ops_alarm_rules WHERE id = #{id}</delete>
+
+    <update id="updateAlarmRuleCheck">
+        UPDATE ops_alarm_rules SET last_value = #{value}, last_check_at = #{time}, firing = #{firing}
+        WHERE id = #{id}
+    </update>
+
+    <!-- ==================== 告警记录 ==================== -->
+    <sql id="alarmRecordColumns">
+        id, rule_id, rule_name, metric_key, metric_value, threshold, level, status, message,
+        fired_at, resolved_at, duration_seconds, ack_by, ack_at, remark, created_at
+    </sql>
+
+    <select id="selectAlarmRecords" resultType="com.maotuanzi.entity.OpsAlarmRecord">
+        SELECT <include refid="alarmRecordColumns"/> FROM ops_alarm_records
+        <where>
+            <if test="status != null and status != ''">AND status = #{status}</if>
+            <if test="level != null and level != ''">AND level = #{level}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (rule_name LIKE CONCAT('%', #{keyword}, '%') OR metric_key LIKE CONCAT('%', #{keyword}, '%')
+                     OR IFNULL(message, '') LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="from != null">AND fired_at &gt;= #{from}</if>
+            <if test="to != null">AND fired_at &lt;= #{to}</if>
+        </where>
+        ORDER BY fired_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countAlarmRecords" resultType="java.lang.Long">
+        SELECT COUNT(1) FROM ops_alarm_records
+        <where>
+            <if test="status != null and status != ''">AND status = #{status}</if>
+            <if test="level != null and level != ''">AND level = #{level}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (rule_name LIKE CONCAT('%', #{keyword}, '%') OR metric_key LIKE CONCAT('%', #{keyword}, '%')
+                     OR IFNULL(message, '') LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="from != null">AND fired_at &gt;= #{from}</if>
+            <if test="to != null">AND fired_at &lt;= #{to}</if>
+        </where>
+    </select>
+
+    <select id="selectFiringByRule" resultType="com.maotuanzi.entity.OpsAlarmRecord">
+        SELECT <include refid="alarmRecordColumns"/> FROM ops_alarm_records
+        WHERE rule_id = #{ruleId} AND status = 'FIRING' ORDER BY fired_at DESC LIMIT 1
+    </select>
+
+    <insert id="insertAlarmRecord" parameterType="com.maotuanzi.entity.OpsAlarmRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ops_alarm_records
+        (rule_id, rule_name, metric_key, metric_value, threshold, level, status, message, fired_at)
+        VALUES
+        (#{ruleId}, #{ruleName}, #{metricKey}, #{metricValue}, #{threshold}, #{level}, #{status}, #{message}, #{firedAt})
+    </insert>
+
+    <update id="resolveAlarmRecord">
+        UPDATE ops_alarm_records
+        SET status = 'RESOLVED', resolved_at = #{resolvedAt},
+            duration_seconds = #{durationSeconds}, metric_value = #{value}
+        WHERE id = #{id}
+    </update>
+
+    <update id="ackAlarmRecord">
+        UPDATE ops_alarm_records SET ack_by = #{ackBy}, ack_at = #{time}, remark = #{remark} WHERE id = #{id}
+    </update>
+
+    <select id="selectAlarmStat" resultType="java.util.LinkedHashMap">
+        SELECT
+            SUM(CASE WHEN status = 'FIRING' THEN 1 ELSE 0 END) AS firing,
+            SUM(CASE WHEN status = 'FIRING' AND level = 'P0' THEN 1 ELSE 0 END) AS firingP0,
+            SUM(CASE WHEN status = 'FIRING' AND level = 'P1' THEN 1 ELSE 0 END) AS firingP1,
+            SUM(CASE WHEN status = 'FIRING' AND level = 'P2' THEN 1 ELSE 0 END) AS firingP2,
+            COUNT(1) AS total,
+            SUM(CASE WHEN status = 'RESOLVED' THEN 1 ELSE 0 END) AS resolved,
+            SUM(CASE WHEN status = 'FIRING' AND ack_at IS NULL THEN 1 ELSE 0 END) AS unacked
+        FROM ops_alarm_records
+        WHERE fired_at &gt;= #{from}
+    </select>
+
+    <select id="selectAlarmTrend" resultType="java.util.LinkedHashMap">
+        SELECT DATE_FORMAT(fired_at, '%Y-%m-%d %H:00:00') AS bucket,
+               COUNT(1) AS total,
+               SUM(CASE WHEN level = 'P0' THEN 1 ELSE 0 END) AS p0,
+               SUM(CASE WHEN level = 'P1' THEN 1 ELSE 0 END) AS p1,
+               SUM(CASE WHEN level = 'P2' THEN 1 ELSE 0 END) AS p2
+        FROM ops_alarm_records
+        WHERE fired_at BETWEEN #{from} AND #{to}
+        GROUP BY bucket ORDER BY bucket ASC
+    </select>
+
+    <!-- ==================== 任务 ==================== -->
+    <sql id="jobColumns">
+        id, job_code, job_name, cron, handler, job_type, params, enabled, last_status,
+        last_run_at, next_run_at, last_duration_ms, last_message, run_count, fail_count,
+        created_at, updated_at
+    </sql>
+
+    <select id="selectJobs" resultType="com.maotuanzi.entity.OpsJob">
+        SELECT <include refid="jobColumns"/> FROM ops_jobs
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (job_code LIKE CONCAT('%', #{keyword}, '%') OR job_name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="enabled != null">AND enabled = #{enabled}</if>
+        </where>
+        ORDER BY id ASC
+    </select>
+
+    <select id="selectJob" resultType="com.maotuanzi.entity.OpsJob">
+        SELECT <include refid="jobColumns"/> FROM ops_jobs WHERE id = #{id}
+    </select>
+
+    <select id="selectJobByCode" resultType="com.maotuanzi.entity.OpsJob">
+        SELECT <include refid="jobColumns"/> FROM ops_jobs WHERE job_code = #{jobCode}
+    </select>
+
+    <insert id="insertJob" parameterType="com.maotuanzi.entity.OpsJob" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ops_jobs (job_code, job_name, cron, handler, job_type, params, enabled)
+        VALUES (#{jobCode}, #{jobName}, #{cron}, #{handler}, #{jobType}, #{params}, #{enabled})
+    </insert>
+
+    <update id="updateJob" parameterType="com.maotuanzi.entity.OpsJob">
+        UPDATE ops_jobs
+        <set>
+            <if test="jobName != null">job_name = #{jobName},</if>
+            <if test="cron != null">cron = #{cron},</if>
+            <if test="handler != null">handler = #{handler},</if>
+            <if test="params != null">params = #{params},</if>
+            <if test="enabled != null">enabled = #{enabled},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteJob">DELETE FROM ops_jobs WHERE id = #{id}</delete>
+
+    <update id="updateJobRunResult">
+        UPDATE ops_jobs
+        SET last_status = #{status}, last_run_at = #{lastRunAt}, next_run_at = #{nextRunAt},
+            last_duration_ms = #{durationMs}, last_message = #{message},
+            run_count = run_count + 1,
+            <if test="status == 'FAILED'">fail_count = fail_count + 1</if>
+            <if test="status != 'FAILED'">fail_count = fail_count</if>
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateJobNextRun">
+        UPDATE ops_jobs SET next_run_at = #{nextRunAt} WHERE id = #{id}
+    </update>
+
+    <update id="updateJobRunning">
+        UPDATE ops_jobs SET last_status = 'RUNNING', last_run_at = #{lastRunAt} WHERE id = #{id}
+    </update>
+
+    <select id="selectJobStat" resultType="java.util.LinkedHashMap">
+        SELECT COUNT(1) AS total,
+               SUM(CASE WHEN enabled = 1 THEN 1 ELSE 0 END) AS enabled,
+               SUM(CASE WHEN last_status = 'FAILED' THEN 1 ELSE 0 END) AS failed,
+               SUM(run_count) AS runTotal,
+               SUM(fail_count) AS failTotal
+        FROM ops_jobs
+        <if test="from != null">
+            WHERE (last_run_at IS NULL OR last_run_at &gt;= #{from})
+        </if>
+    </select>
+
+    <!-- ==================== 任务执行记录 ==================== -->
+    <insert id="insertJobRecord" parameterType="com.maotuanzi.entity.OpsJobRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ops_job_records (job_id, job_code, status, trigger_type, instance_id, start_at)
+        VALUES (#{jobId}, #{jobCode}, #{status}, #{triggerType}, #{instanceId}, #{startAt})
+    </insert>
+
+    <update id="finishJobRecord">
+        UPDATE ops_job_records
+        SET status = #{status}, end_at = #{endAt}, duration_ms = #{durationMs}, message = #{message}
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectJobRecords" resultType="com.maotuanzi.entity.OpsJobRecord">
+        SELECT id, job_id, job_code, status, trigger_type, instance_id, start_at, end_at,
+               duration_ms, message, created_at
+        FROM ops_job_records
+        <where>
+            <if test="jobId != null">AND job_id = #{jobId}</if>
+            <if test="status != null and status != ''">AND status = #{status}</if>
+        </where>
+        ORDER BY start_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countJobRecords" resultType="java.lang.Long">
+        SELECT COUNT(1) FROM ops_job_records
+        <where>
+            <if test="jobId != null">AND job_id = #{jobId}</if>
+            <if test="status != null and status != ''">AND status = #{status}</if>
+        </where>
+    </select>
+
+    <delete id="deleteJobRecordsBefore">
+        DELETE FROM ops_job_records WHERE start_at &lt; #{before}
+    </delete>
+
+    <!-- ==================== 业务巡检 ==================== -->
+    <select id="selectAiTaskStatusStats" resultType="java.util.LinkedHashMap">
+        SELECT status, COUNT(1) AS cnt
+        FROM ai_tasks
+        <where>
+            <if test="from != null">AND created_at &gt;= #{from}</if>
+        </where>
+        GROUP BY status
+    </select>
+
+    <select id="selectAiTaskTypeStats" resultType="java.util.LinkedHashMap">
+        SELECT task_type AS taskType, COUNT(1) AS cnt,
+               SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) AS success,
+               SUM(CASE WHEN status = 3 THEN 1 ELSE 0 END) AS failed,
+               AVG(CASE WHEN finished_at IS NOT NULL AND started_at IS NOT NULL
+                        THEN TIMESTAMPDIFF(SECOND, started_at, finished_at) END) AS avgSeconds
+        FROM ai_tasks
+        <where>
+            <if test="from != null">AND created_at &gt;= #{from}</if>
+        </where>
+        GROUP BY task_type ORDER BY cnt DESC
+    </select>
+
+    <select id="selectAiTaskFailReasons" resultType="java.util.LinkedHashMap">
+        SELECT IFNULL(error_code, -1) AS errorCode,
+               IFNULL(error_message, '未知') AS errorMessage,
+               COUNT(1) AS cnt
+        FROM ai_tasks
+        WHERE status = 3
+        <if test="from != null">AND created_at &gt;= #{from}</if>
+        GROUP BY error_code, error_message
+        ORDER BY cnt DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="countAiTasks" resultType="java.lang.Long">
+        SELECT COUNT(1) FROM ai_tasks
+        <where>
+            <if test="status != null">AND status = #{status}</if>
+            <if test="from != null">AND created_at &gt;= #{from}</if>
+        </where>
+    </select>
+
+    <select id="selectAiTaskLatency" resultType="java.util.LinkedHashMap">
+        SELECT COUNT(*) AS sampleCount,
+               AVG(TIMESTAMPDIFF(MICROSECOND, started_at, finished_at) / 1000) AS avgMs,
+               MAX(TIMESTAMPDIFF(MICROSECOND, started_at, finished_at) / 1000) AS maxMs
+        FROM ai_tasks WHERE started_at IS NOT NULL AND finished_at IS NOT NULL
+          AND finished_at &gt;= started_at AND created_at &gt;= #{from}
+    </select>
+
+    <update id="timeoutAiTasks">
+        UPDATE ai_tasks
+        SET status = 3, error_code = 106002, error_message = 'AI 任务超时（运维扫描置为失败）',
+            finished_at = NOW()
+        WHERE status IN (0, 1)
+          AND created_at &lt; #{before}
+        LIMIT #{limit}
+    </update>
+
+    <select id="selectOrderStats" resultType="java.util.LinkedHashMap">
+        SELECT status, COUNT(1) AS cnt, IFNULL(SUM(amount_cents), 0) AS amountCents
+        FROM orders
+        <where>
+            <if test="from != null">AND created_at &gt;= #{from}</if>
+        </where>
+        GROUP BY status
+    </select>
+
+    <select id="countNewUsers" resultType="java.lang.Long">
+        SELECT COUNT(1) FROM users
+        <where>
+            <if test="from != null">AND created_at &gt;= #{from}</if>
+        </where>
+    </select>
+
+    <select id="countPaidOrders" resultType="java.lang.Long">
+        SELECT COUNT(1) FROM orders
+        WHERE status IN (1, 2)
+        <if test="from != null">AND paid_at &gt;= #{from}</if>
+    </select>
+
+    <select id="countPendingWorks" resultType="java.lang.Long">
+        SELECT COUNT(1) FROM works WHERE is_public = 1 AND status = 1
+    </select>
+
+    <select id="countPendingRefunds" resultType="java.lang.Long">
+        SELECT COUNT(1) FROM refunds WHERE status = 0
+    </select>
+
+    <select id="countPendingReports" resultType="java.lang.Long">
+        SELECT COUNT(1) FROM post_reports WHERE status = 0
+    </select>
+
+    <select id="selectUserDaily" resultType="java.util.LinkedHashMap">
+        SELECT DATE_FORMAT(created_at, '%Y-%m-%d') AS day, COUNT(1) AS cnt
+        FROM users WHERE created_at &gt;= #{from}
+        GROUP BY day ORDER BY day ASC
+    </select>
+
+    <select id="selectOrderDaily" resultType="java.util.LinkedHashMap">
+        SELECT DATE_FORMAT(created_at, '%Y-%m-%d') AS day, COUNT(1) AS cnt,
+               IFNULL(SUM(CASE WHEN status IN (1,2) THEN amount_cents ELSE 0 END), 0) AS amountCents
+        FROM orders WHERE created_at &gt;= #{from}
+        GROUP BY day ORDER BY day ASC
+    </select>
+
+    <!-- ==================== 存储 ==================== -->
+    <select id="countUploads" resultType="java.lang.Long">
+        SELECT COUNT(1) FROM uploads
+        <where>
+            <if test="from != null">AND created_at &gt;= #{from}</if>
+        </where>
+    </select>
+
+    <select id="sumUploadSize" resultType="java.lang.Long">
+        SELECT IFNULL(SUM(size_bytes), 0) FROM uploads
+        <where>
+            <if test="from != null">AND created_at &gt;= #{from}</if>
+        </where>
+    </select>
+
+    <select id="selectUploadStatsByType" resultType="java.util.LinkedHashMap">
+        SELECT IFNULL(biz_type, 'unknown') AS bizType, COUNT(1) AS cnt,
+               IFNULL(SUM(size_bytes), 0) AS sizeBytes
+        FROM uploads
+        <where>
+            <if test="from != null">AND created_at &gt;= #{from}</if>
+        </where>
+        GROUP BY biz_type ORDER BY cnt DESC
+    </select>
+
+    <select id="selectUploadDaily" resultType="java.util.LinkedHashMap">
+        SELECT DATE_FORMAT(created_at, '%Y-%m-%d') AS day, COUNT(1) AS cnt,
+               IFNULL(SUM(size_bytes), 0) AS sizeBytes
+        FROM uploads WHERE created_at &gt;= #{from}
+        GROUP BY day ORDER BY day ASC
+    </select>
+
+    <select id="selectTopUploaders" resultType="java.util.LinkedHashMap">
+        SELECT user_id AS userId, COUNT(1) AS cnt, IFNULL(SUM(size_bytes), 0) AS sizeBytes
+        FROM uploads WHERE created_at &gt;= #{from}
+        GROUP BY user_id ORDER BY sizeBytes DESC LIMIT #{limit}
+    </select>
+
+    <delete id="deleteOrphanUploads">
+        DELETE FROM uploads
+        WHERE created_at &lt; #{before}
+          AND IFNULL(related_id, '') = ''
+    </delete>
+
+    <!-- ==================== 审计 ==================== -->
+    <select id="selectAdminLogs" resultType="java.util.LinkedHashMap">
+        SELECT l.id, l.admin_user_id AS adminUserId, u.username, l.module, l.action,
+               l.target_id AS targetId, l.ip, l.user_agent AS userAgent, l.created_at AS createdAt
+        FROM admin_logs l
+        LEFT JOIN admin_users u ON u.id = l.admin_user_id
+        <where>
+            <if test="module != null and module != ''">AND l.module = #{module}</if>
+            <if test="action != null and action != ''">AND l.action = #{action}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (IFNULL(u.username, '') LIKE CONCAT('%', #{keyword}, '%')
+                     OR l.action LIKE CONCAT('%', #{keyword}, '%')
+                     OR IFNULL(l.target_id, '') LIKE CONCAT('%', #{keyword}, '%')
+                     OR IFNULL(l.ip, '') LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="from != null">AND l.created_at &gt;= #{from}</if>
+            <if test="to != null">AND l.created_at &lt;= #{to}</if>
+        </where>
+        ORDER BY l.created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countAdminLogs" resultType="java.lang.Long">
+        SELECT COUNT(1) FROM admin_logs l LEFT JOIN admin_users u ON u.id = l.admin_user_id
+        <where>
+            <if test="module != null and module != ''">AND l.module = #{module}</if>
+            <if test="action != null and action != ''">AND l.action = #{action}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (IFNULL(u.username, '') LIKE CONCAT('%', #{keyword}, '%')
+                     OR l.action LIKE CONCAT('%', #{keyword}, '%')
+                     OR IFNULL(l.target_id, '') LIKE CONCAT('%', #{keyword}, '%')
+                     OR IFNULL(l.ip, '') LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="from != null">AND l.created_at &gt;= #{from}</if>
+            <if test="to != null">AND l.created_at &lt;= #{to}</if>
+        </where>
+    </select>
+
+    <select id="selectContentAuditLogs" resultType="java.util.LinkedHashMap">
+        SELECT id, user_id AS userId, content_type AS contentType, content_id AS contentId,
+               check_type AS checkType, check_result AS checkResult, reason, operator,
+               created_at AS createdAt
+        FROM audit_logs
+        <where>
+            <if test="checkResult != null and checkResult != ''">AND check_result = #{checkResult}</if>
+            <if test="contentType != null and contentType != ''">AND content_type = #{contentType}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (IFNULL(reason, '') LIKE CONCAT('%', #{keyword}, '%')
+                     OR IFNULL(content_id, '') LIKE CONCAT('%', #{keyword}, '%')
+                     OR IFNULL(operator, '') LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="from != null">AND created_at &gt;= #{from}</if>
+            <if test="to != null">AND created_at &lt;= #{to}</if>
+        </where>
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countContentAuditLogs" resultType="java.lang.Long">
+        SELECT COUNT(1) FROM audit_logs
+        <where>
+            <if test="checkResult != null and checkResult != ''">AND check_result = #{checkResult}</if>
+            <if test="contentType != null and contentType != ''">AND content_type = #{contentType}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (IFNULL(reason, '') LIKE CONCAT('%', #{keyword}, '%')
+                     OR IFNULL(content_id, '') LIKE CONCAT('%', #{keyword}, '%')
+                     OR IFNULL(operator, '') LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="from != null">AND created_at &gt;= #{from}</if>
+            <if test="to != null">AND created_at &lt;= #{to}</if>
+        </where>
+    </select>
+
+    <select id="selectAuditStat" resultType="java.util.LinkedHashMap">
+        SELECT
+            (SELECT COUNT(1) FROM admin_logs WHERE created_at &gt;= #{from}) AS adminLogs,
+            (SELECT COUNT(1) FROM audit_logs WHERE created_at &gt;= #{from}) AS auditLogs,
+            (SELECT COUNT(1) FROM audit_logs WHERE created_at &gt;= #{from} AND check_result = 'block') AS blocked,
+            (SELECT COUNT(1) FROM audit_logs WHERE created_at &gt;= #{from} AND check_result = 'report') AS reported
+    </select>
+
+    <!-- ==================== 配置 ==================== -->
+    <select id="selectOpsConfigs" resultType="com.maotuanzi.entity.SystemConfig">
+        SELECT id, config_key, config_value, description, is_public, updated_by, created_at, updated_at
+        FROM system_configs WHERE config_key LIKE 'ops.%' ORDER BY config_key ASC
+    </select>
+
+    <select id="selectOpsConfigForUpdate" resultType="com.maotuanzi.entity.SystemConfig">
+        SELECT id, config_key, config_value, description, is_public, updated_by, created_at, updated_at
+        FROM system_configs WHERE config_key = #{configKey} FOR UPDATE
+    </select>
+
+    <insert id="restoreOpsConfig">
+        INSERT INTO system_configs (config_key, config_value, description, is_public, updated_by)
+        VALUES (#{configKey}, #{configValue}, #{description}, 0, #{updatedBy})
+        ON DUPLICATE KEY UPDATE config_value = VALUES(config_value),
+        description = VALUES(description), updated_by = VALUES(updated_by)
+    </insert>
+
+    <insert id="upsertOpsConfig">
+        INSERT INTO system_configs (config_key, config_value, description, is_public, updated_by)
+        VALUES (#{configKey}, #{configValue}, #{description}, 0, #{updatedBy})
+        ON DUPLICATE KEY UPDATE
+        config_value = VALUES(config_value),
+        description = IFNULL(VALUES(description), description),
+        updated_by = VALUES(updated_by)
+    </insert>
+
+    <delete id="deleteOpsConfig">DELETE FROM system_configs WHERE config_key = #{configKey}</delete>
+
+    <!-- ==================== 清理 ==================== -->
+    <delete id="deleteIdempotencyBefore">
+        DELETE FROM idempotency_keys WHERE expires_at &lt; #{before}
+    </delete>
+
+    <!-- ==================== 数据库元数据 ==================== -->
+    <select id="selectTableStats" resultType="java.util.LinkedHashMap">
+        SELECT TABLE_NAME AS tableName,
+               TABLE_ROWS AS tableRows,
+               IFNULL(DATA_LENGTH, 0) AS dataLength,
+               IFNULL(INDEX_LENGTH, 0) AS indexLength,
+               IFNULL(DATA_FREE, 0) AS dataFree,
+               ENGINE AS engine,
+               TABLE_COLLATION AS collation
+        FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = #{schema}
+        ORDER BY (IFNULL(DATA_LENGTH, 0) + IFNULL(INDEX_LENGTH, 0)) DESC
+    </select>
+
+</mapper>

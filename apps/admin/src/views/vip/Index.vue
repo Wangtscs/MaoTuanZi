@@ -1,0 +1,1 @@
+<template><div class="page"><h2 class="page-title">会员配置</h2><p>会员档位与权益配置：月卡 ¥19.9、季卡 ¥49.9、年卡 ¥129</p></div></template>

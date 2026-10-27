@@ -1,0 +1,1 @@
+<template><div class="page"><h2 class="page-title">卡券管理</h2><p>卡券创建、发放、核销、统计</p></div></template>

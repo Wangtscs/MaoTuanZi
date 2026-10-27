@@ -1,0 +1,1 @@
+<template><router-view /></template><script setup lang="ts"></script><style>#app { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; -webkit-font-smoothing: antialiased; color: #2C2C2C; height: 100vh; }</style>

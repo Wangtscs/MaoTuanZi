@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.maotuanzi.mapper.RefundMapper">
+    <resultMap id="BaseResultMap" type="com.maotuanzi.entity.Refund">
+        <id column="id" property="id"/>
+        <result column="refund_no" property="refundNo"/>
+        <result column="order_id" property="orderId"/>
+        <result column="user_id" property="userId"/>
+        <result column="amount_cents" property="amountCents"/>
+        <result column="reason" property="reason"/>
+        <result column="status" property="status"/>
+        <result column="wx_refund_id" property="wxRefundId"/>
+        <result column="review_remark" property="reviewRemark"/>
+        <result column="reviewed_by" property="reviewedBy"/>
+        <result column="reviewed_at" property="reviewedAt"/>
+        <result column="refunded_at" property="refundedAt"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.maotuanzi.entity.Refund" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO refunds (refund_no, order_id, user_id, amount_cents, reason, status)
+        VALUES (#{refundNo}, #{orderId}, #{userId}, #{amountCents}, #{reason}, #{status})
+    </insert>
+
+    <update id="updateById" parameterType="com.maotuanzi.entity.Refund">
+        UPDATE refunds
+        <set>
+            <if test="status != null">status = #{status},</if>
+            <if test="wxRefundId != null">wx_refund_id = #{wxRefundId},</if>
+            <if test="reviewRemark != null">review_remark = #{reviewRemark},</if>
+            <if test="reviewedBy != null">reviewed_by = #{reviewedBy},</if>
+            <if test="reviewedAt != null">reviewed_at = #{reviewedAt},</if>
+            <if test="refundedAt != null">refunded_at = #{refundedAt},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM refunds WHERE id = #{id}
+    </select>
+
+    <select id="selectByRefundNo" resultMap="BaseResultMap">
+        SELECT * FROM refunds WHERE refund_no = #{refundNo} LIMIT 1
+    </select>
+
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT * FROM refunds WHERE user_id = #{userId} ORDER BY id DESC LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countByUserId" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM refunds WHERE user_id = #{userId} AND created_at &gt;= #{since}
+    </select>
+
+    <select id="countByOrder" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM refunds WHERE order_id = #{orderId}
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT * FROM refunds
+        <where>
+            <if test="status != null">status = #{status}</if>
+        </where>
+        ORDER BY id DESC LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countAll" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM refunds
+        <where>
+            <if test="status != null">status = #{status}</if>
+        </where>
+    </select>
+</mapper>

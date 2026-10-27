@@ -1,0 +1,88 @@
+# Java
+target/
+*.class
+*.jar
+*.war
+hs_err_pid*.log
+replay_pid*.log
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# Node
+node_modules/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-store/
+
+# Vue
+.history/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+
+# HarmonyOS
+oh_modules/
+local.properties
+*.haps
+*.hap
+build/
+obj/
+
+# Logs
+logs/
+*.log
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.*
+!.env.example
+!.env.example.*
+
+# Local agent state, workflow runs, and generated code intelligence indexes
+.workbuddy/
+.tene-workflow/
+.gitnexus/
+
+# Local build/test transcripts and scratch output
+.*-results.txt
+.tene-help.txt
+tmp_*.txt
+tmp_*.log
+
+# Local data, backups, signing material, and credentials
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.bak
+*.backup
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+*.crt
+*.cer
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+tmp_*.ps1
+tmp_*.log
+# QR 验证工具临时探针
+apps/mobile/tools/qr-verify/.build/

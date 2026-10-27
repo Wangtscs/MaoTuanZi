@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.maotuanzi.mapper.SensitiveWordMapper">
+    <select id="selectAllActive" resultType="com.maotuanzi.entity.SensitiveWord">
+        SELECT * FROM sensitive_words WHERE is_active = 1
+    </select>
+
+    <insert id="insert" parameterType="com.maotuanzi.entity.SensitiveWord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sensitive_words (word, category, severity, is_active)
+        VALUES (#{word}, #{category}, #{severity}, #{isActive})
+    </insert>
+
+    <update id="updateById" parameterType="com.maotuanzi.entity.SensitiveWord">
+        UPDATE sensitive_words
+        <set>
+            <if test="word != null">word = #{word},</if>
+            <if test="category != null">category = #{category},</if>
+            <if test="severity != null">severity = #{severity},</if>
+            <if test="isActive != null">is_active = #{isActive},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM sensitive_words WHERE id = #{id}
+    </delete>
+</mapper>

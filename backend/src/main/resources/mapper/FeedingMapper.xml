@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.maotuanzi.mapper.FeedingMapper">
+    <insert id="insertRecord" parameterType="com.maotuanzi.entity.Feeding" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO feedings (user_id, pet_id, fed_at, food_type, amount_g, note)
+        VALUES (#{userId}, #{petId}, #{fedAt}, #{foodType}, #{amountG}, #{note})
+    </insert>
+
+    <delete id="deleteRecord">
+        DELETE FROM feedings WHERE id = #{id}
+    </delete>
+
+    <select id="selectRecords" resultType="com.maotuanzi.entity.Feeding">
+        SELECT * FROM feedings WHERE user_id = #{userId} AND pet_id = #{petId}
+        ORDER BY fed_at DESC LIMIT #{limit}
+    </select>
+
+    <insert id="insertPlan" parameterType="com.maotuanzi.entity.FeedingPlan" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO feeding_plans (user_id, pet_id, order_id, plan_content, adjust_count)
+        VALUES (#{userId}, #{petId}, #{orderId}, #{planContent}, #{adjustCount})
+    </insert>
+
+    <update id="updatePlan" parameterType="com.maotuanzi.entity.FeedingPlan">
+        UPDATE feeding_plans SET plan_content = #{planContent}, adjust_count = #{adjustCount}
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectPlanByPet" resultType="com.maotuanzi.entity.FeedingPlan">
+        SELECT * FROM feeding_plans WHERE user_id = #{userId} AND pet_id = #{petId}
+        ORDER BY id DESC LIMIT 1
+    </select>
+</mapper>

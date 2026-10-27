@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.maotuanzi.mapper.UploadMapper">
+    <insert id="insert" parameterType="com.maotuanzi.entity.Upload" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO uploads (user_id, oss_key, url, file_name, content_type, size_bytes, biz_type, related_id)
+        VALUES (#{userId}, #{ossKey}, #{url}, #{fileName}, #{contentType}, #{sizeBytes}, #{bizType}, #{relatedId})
+    </insert>
+
+    <select id="selectByOssKey" resultType="com.maotuanzi.entity.Upload">
+        SELECT * FROM uploads WHERE oss_key = #{ossKey} LIMIT 1
+    </select>
+</mapper>

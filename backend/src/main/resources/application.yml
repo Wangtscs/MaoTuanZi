@@ -1,0 +1,176 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+  tomcat:
+    uri-encoding: UTF-8
+    max-threads: 200
+
+spring:
+  application:
+    name: maotuanzi-api
+
+  profiles:
+    active: dev
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 50MB
+
+  jackson:
+    date-format: yyyy-MM-dd'T'HH:mm:ss'Z'
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/maotuanzi?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useInformationSchema=true
+    username: root
+    password: ${DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 30000
+      connection-timeout: 30000
+      max-lifetime: 1800000
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password:
+    timeout: 5000
+    lettuce:
+      pool:
+        max-active: 16
+        max-idle: 8
+        min-idle: 2
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000
+      cache-null-values: false
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.maotuanzi.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    use-generated-keys: true
+    default-fetch-size: 100
+    default-statement-timeout: 30
+
+pagehelper:
+  helper-dialect: mysql
+  reasonable: true
+  support-methods-arguments: true
+  params: count=countSql
+
+# 业务配置
+maotuanzi:
+  jwt:
+    secret: ${JWT_SECRET:maotuanzi-secret-key-please-change-in-production-32bytes}
+    access-expire: 604800       # 7 天（秒）
+    refresh-expire: 2592000     # 30 天
+  oss:
+    enabled: ${OSS_ENABLED:false}
+    endpoint: ${OSS_ENDPOINT:https://oss-cn-hangzhou.aliyuncs.com}
+    bucket: ${OSS_BUCKET:maotuanzi-dev}
+    access-key-id: ${OSS_ACCESS_KEY_ID:}
+    access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+    cdn-domain: ${OSS_CDN_DOMAIN:}
+    expire-seconds: 3600
+  wx:
+    enabled: ${WX_ENABLED:false}
+    app-id: ${WECHAT_APP_ID:wx_test}
+    app-secret: ${WECHAT_APP_SECRET:test}
+    pay:
+      mch-id: ${WECHAT_PAY_MCH_ID:}
+      api-key: ${WECHAT_PAY_API_KEY:}
+      notify-url: ${WECHAT_PAY_NOTIFY_URL:https://api.maotuanzi.ai/v1/webhooks/wx-pay}
+  payment:
+    wechat:
+      mch-id: ${WECHAT_PAY_MCH_ID:}
+      app-id: ${WECHAT_PAY_APP_ID:}
+      api-key: ${WECHAT_PAY_API_KEY:}
+      notify-url: ${WECHAT_PAY_NOTIFY_URL:https://api.maotuanzi.ai/v1/webhooks/wx-pay}
+      cert-path: ${WECHAT_PAY_CERT_PATH:}
+    huawei:
+      app-id: ${HUAWEI_APP_ID:}
+      merchant-id: ${HUAWEI_MERCHANT_ID:}
+      key: ${HUAWEI_KEY:}
+  ai:
+    enabled: ${AI_ENABLED:false}
+    mock-mode: ${AI_MOCK_MODE:true}
+    timeout-seconds: 60
+    max-retry: 3
+    wanx:
+      api-key: ${AI_WANX_API_KEY:}
+      model: wanx-pro
+  rate-limit:
+    enabled: true
+    login-per-hour: 10
+    upload-per-minute: 30
+    ai-task-concurrent: 2
+    refund-per-month: 1
+  cors:
+    allowed-origins:
+      - "*"
+
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+
+logging:
+  level:
+    root: INFO
+    com.maotuanzi: DEBUG
+    org.springframework.cache: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%X{traceId}] %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"
+  file:
+    path: logs/
+    max-size: 50MB
+    max-history: 30
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+      password: ${DB_PASSWORD:}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    password: ${DB_PASSWORD}

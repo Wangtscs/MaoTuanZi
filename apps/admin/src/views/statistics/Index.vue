@@ -1,0 +1,1 @@
+<template><div class="page"><h2 class="page-title">数据统计</h2><p>用户增长、付费转化、AI 调用量统计</p></div></template>

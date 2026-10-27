@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.maotuanzi.mapper.BreedMapper">
+    <resultMap id="BaseResultMap" type="com.maotuanzi.entity.Breed">
+        <id column="id" property="id"/>
+        <result column="species" property="species"/>
+        <result column="name" property="name"/>
+        <result column="name_en" property="nameEn"/>
+        <result column="aliases" property="aliases"/>
+        <result column="description" property="description"/>
+        <result column="characteristics" property="characteristics"/>
+        <result column="care_tips" property="careTips"/>
+        <result column="image_url" property="imageUrl"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="is_active" property="isActive"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM breeds WHERE id = #{id}
+    </select>
+
+    <select id="selectBySpecies" resultMap="BaseResultMap">
+        SELECT * FROM breeds WHERE species = #{species} AND is_active = 1 ORDER BY sort_order ASC
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT * FROM breeds
+        <where>
+            <if test="species != null">species = #{species}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (name LIKE CONCAT('%', #{keyword}, '%') OR aliases LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY species ASC, sort_order ASC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countAll" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM breeds
+        <where>
+            <if test="species != null">species = #{species}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (name LIKE CONCAT('%', #{keyword}, '%') OR aliases LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
+    <insert id="insert" parameterType="com.maotuanzi.entity.Breed" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO breeds (species, name, name_en, aliases, description, characteristics,
+                            care_tips, image_url, sort_order, is_active)
+        VALUES (#{species}, #{name}, #{nameEn}, #{aliases}, #{description}, #{characteristics},
+                #{careTips}, #{imageUrl}, #{sortOrder}, #{isActive})
+    </insert>
+
+    <update id="updateById" parameterType="com.maotuanzi.entity.Breed">
+        UPDATE breeds
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="nameEn != null">name_en = #{nameEn},</if>
+            <if test="aliases != null">aliases = #{aliases},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="characteristics != null">characteristics = #{characteristics},</if>
+            <if test="careTips != null">care_tips = #{careTips},</if>
+            <if test="imageUrl != null">image_url = #{imageUrl},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+            <if test="isActive != null">is_active = #{isActive},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM breeds WHERE id = #{id}
+    </delete>
+</mapper>

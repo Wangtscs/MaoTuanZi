@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.maotuanzi.mapper.WeightLogMapper">
+    <resultMap id="BaseResultMap" type="com.maotuanzi.entity.WeightLog">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="pet_id" property="petId"/>
+        <result column="weight_kg" property="weightKg"/>
+        <result column="recorded_at" property="recordedAt"/>
+        <result column="note" property="note"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.maotuanzi.entity.WeightLog" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO weight_logs (user_id, pet_id, weight_kg, recorded_at, note)
+        VALUES (#{userId}, #{petId}, #{weightKg}, #{recordedAt}, #{note})
+    </insert>
+
+    <update id="updateById" parameterType="com.maotuanzi.entity.WeightLog">
+        UPDATE weight_logs SET weight_kg = #{weightKg}, recorded_at = #{recordedAt}, note = #{note}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM weight_logs WHERE id = #{id}
+    </delete>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM weight_logs WHERE id = #{id}
+    </select>
+
+    <select id="selectByPet" resultMap="BaseResultMap">
+        SELECT * FROM weight_logs WHERE user_id = #{userId} AND pet_id = #{petId}
+        ORDER BY recorded_at DESC LIMIT #{limit}
+    </select>
+</mapper>

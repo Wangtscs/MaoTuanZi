@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.maotuanzi.mapper.IdempotencyMapper">
+    <insert id="insert">
+        INSERT INTO idempotency_keys (idempotency_key, user_id, endpoint, response, expires_at)
+        VALUES (#{key}, #{userId}, #{endpoint}, #{response}, #{expiresAt})
+    </insert>
+
+    <select id="selectResponse" resultType="java.lang.String">
+        SELECT response FROM idempotency_keys WHERE idempotency_key = #{key} AND expires_at &gt; NOW() LIMIT 1
+    </select>
+
+    <delete id="deleteExpired">
+        DELETE FROM idempotency_keys WHERE expires_at &lt; #{now}
+    </delete>
+</mapper>

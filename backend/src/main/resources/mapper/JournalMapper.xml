@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.maotuanzi.mapper.JournalMapper">
+    <resultMap id="BaseResultMap" type="com.maotuanzi.entity.JournalEntry">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="pet_id" property="petId"/>
+        <result column="title" property="title"/>
+        <result column="content" property="content"/>
+        <result column="images" property="images"/>
+        <result column="mood" property="mood"/>
+        <result column="entry_date" property="entryDate"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="deleted_at" property="deletedAt"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.maotuanzi.entity.JournalEntry" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO journal_entries (user_id, pet_id, title, content, images, mood, entry_date)
+        VALUES (#{userId}, #{petId}, #{title}, #{content}, #{images}, #{mood}, #{entryDate})
+    </insert>
+
+    <update id="updateById" parameterType="com.maotuanzi.entity.JournalEntry">
+        UPDATE journal_entries
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="images != null">images = #{images},</if>
+            <if test="mood != null">mood = #{mood},</if>
+            <if test="entryDate != null">entry_date = #{entryDate},</if>
+        </set>
+        WHERE id = #{id} AND deleted_at IS NULL
+    </update>
+
+    <update id="softDelete">
+        UPDATE journal_entries SET deleted_at = #{now} WHERE id = #{id}
+    </update>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM journal_entries WHERE id = #{id} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectByPet" resultMap="BaseResultMap">
+        SELECT * FROM journal_entries WHERE user_id = #{userId} AND pet_id = #{petId} AND deleted_at IS NULL
+        ORDER BY entry_date DESC LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countByPet" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM journal_entries WHERE user_id = #{userId} AND pet_id = #{petId} AND deleted_at IS NULL
+    </select>
+</mapper>

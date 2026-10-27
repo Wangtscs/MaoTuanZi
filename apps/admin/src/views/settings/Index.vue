@@ -1,0 +1,1 @@
+<template><div class="page"><h2 class="page-title">系统设置</h2><p>协议版本、免责声明、敏感词等</p></div></template>

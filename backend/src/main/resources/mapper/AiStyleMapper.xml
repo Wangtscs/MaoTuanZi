@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.maotuanzi.mapper.AiStyleMapper">
+    <resultMap id="BaseResultMap" type="com.maotuanzi.entity.AiStyle">
+        <id column="id" property="id"/>
+        <result column="category" property="category"/>
+        <result column="name" property="name"/>
+        <result column="code" property="code"/>
+        <result column="description" property="description"/>
+        <result column="preview_url" property="previewUrl"/>
+        <result column="prompt_template" property="promptTemplate"/>
+        <result column="is_vip_only" property="isVipOnly"/>
+        <result column="price_cents" property="priceCents"/>
+        <result column="is_active" property="isActive"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM ai_styles WHERE id = #{id}
+    </select>
+
+    <select id="selectByCategory" resultMap="BaseResultMap">
+        SELECT * FROM ai_styles WHERE category = #{category} AND is_active = 1 ORDER BY sort_order ASC
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT * FROM ai_styles
+        <where>
+            <if test="category != null and category != ''">category = #{category}</if>
+            <if test="keyword != null and keyword != ''">
+                AND name LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+        </where>
+        ORDER BY category, sort_order ASC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countAll" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM ai_styles
+        <where>
+            <if test="category != null and category != ''">category = #{category}</if>
+            <if test="keyword != null and keyword != ''">
+                AND name LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+        </where>
+    </select>
+
+    <insert id="insert" parameterType="com.maotuanzi.entity.AiStyle" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ai_styles (category, name, code, description, preview_url, prompt_template,
+                               is_vip_only, price_cents, is_active, sort_order)
+        VALUES (#{category}, #{name}, #{code}, #{description}, #{previewUrl}, #{promptTemplate},
+                #{isVipOnly}, #{priceCents}, #{isActive}, #{sortOrder})
+    </insert>
+
+    <update id="updateById" parameterType="com.maotuanzi.entity.AiStyle">
+        UPDATE ai_styles
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="previewUrl != null">preview_url = #{previewUrl},</if>
+            <if test="promptTemplate != null">prompt_template = #{promptTemplate},</if>
+            <if test="isVipOnly != null">is_vip_only = #{isVipOnly},</if>
+            <if test="priceCents != null">price_cents = #{priceCents},</if>
+            <if test="isActive != null">is_active = #{isActive},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+</mapper>

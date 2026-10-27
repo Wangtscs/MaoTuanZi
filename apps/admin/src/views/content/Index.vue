@@ -1,0 +1,1 @@
+<template><div class="page"><h2 class="page-title">内容审核</h2><p>广场帖子审核、举报处理</p></div></template>

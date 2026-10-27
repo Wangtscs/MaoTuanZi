@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.maotuanzi.mapper.SquareMapper">
+
+    <resultMap id="PostMap" type="com.maotuanzi.entity.SquarePost">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="work_id" property="workId"/>
+        <result column="pet_id" property="petId"/>
+        <result column="content" property="content"/>
+        <result column="image_urls" property="imageUrls"/>
+        <result column="topic" property="topic"/>
+        <result column="is_3d" property="is3d"/>
+        <result column="like_count" property="likeCount"/>
+        <result column="view_count" property="viewCount"/>
+        <result column="comment_count" property="commentCount"/>
+        <result column="share_count" property="shareCount"/>
+        <result column="status" property="status"/>
+        <result column="audit_remark" property="auditRemark"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="deleted_at" property="deletedAt"/>
+    </resultMap>
+
+    <insert id="insertPost" parameterType="com.maotuanzi.entity.SquarePost" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO square_posts (user_id, work_id, pet_id, content, image_urls, topic, is_3d, status)
+        VALUES (#{userId}, #{workId}, #{petId}, #{content}, #{imageUrls}, #{topic}, #{is3d}, #{status})
+    </insert>
+
+    <update id="updatePost" parameterType="com.maotuanzi.entity.SquarePost">
+        UPDATE square_posts
+        <set>
+            <if test="content != null">content = #{content},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="auditRemark != null">audit_remark = #{auditRemark},</if>
+            <if test="modelUrl != null">model_url = #{modelUrl},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="softDeletePost">
+        UPDATE square_posts SET status = 3, deleted_at = #{now} WHERE id = #{id}
+    </update>
+
+    <select id="selectPostById" resultMap="PostMap">
+        SELECT * FROM square_posts WHERE id = #{id} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectPosts" resultMap="PostMap">
+        SELECT * FROM square_posts
+        <where>
+            deleted_at IS NULL
+            <if test="status != null">AND status = #{status}</if>
+            <if test="topic != null and topic != ''">AND topic = #{topic}</if>
+        </where>
+        ORDER BY id DESC LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countPosts" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM square_posts
+        <where>
+            deleted_at IS NULL
+            <if test="status != null">AND status = #{status}</if>
+            <if test="topic != null and topic != ''">AND topic = #{topic}</if>
+        </where>
+    </select>
+
+    <select id="selectPostsByTab" resultMap="PostMap">
+        SELECT * FROM square_posts
+        <where>
+            deleted_at IS NULL
+            <if test="status != null">AND status = #{status}</if>
+            <if test="tab == '3d_zone'">AND is_3d = 1</if>
+            <if test="tab == 'challenge'">AND topic = 'challenge'</if>
+        </where>
+        <choose>
+            <when test="tab == 'hottest'">ORDER BY like_count DESC, id DESC</when>
+            <otherwise>ORDER BY id DESC</otherwise>
+        </choose>
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countPostsByTab" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM square_posts
+        <where>
+            deleted_at IS NULL
+            <if test="status != null">AND status = #{status}</if>
+            <if test="tab == '3d_zone'">AND is_3d = 1</if>
+            <if test="tab == 'challenge'">AND topic = 'challenge'</if>
+        </where>
+    </select>
+
+    <update id="incrLikeCount">
+        UPDATE square_posts SET like_count = like_count + #{delta} WHERE id = #{id}
+    </update>
+
+    <update id="incrShareCount">
+        UPDATE square_posts SET share_count = share_count + #{delta} WHERE id = #{id}
+    </update>
+
+    <insert id="insertLike">
+        INSERT INTO post_likes (post_id, user_id) VALUES (#{postId}, #{userId})
+    </insert>
+
+    <delete id="deleteLike">
+        DELETE FROM post_likes WHERE post_id = #{postId} AND user_id = #{userId}
+    </delete>
+
+    <select id="countLike" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM post_likes WHERE post_id = #{postId} AND user_id = #{userId}
+    </select>
+
+    <insert id="insertComment" parameterType="com.maotuanzi.entity.PostComment" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO post_comments (post_id, user_id, parent_id, content, status)
+        VALUES (#{postId}, #{userId}, #{parentId}, #{content}, #{status})
+    </insert>
+
+    <delete id="deleteComment">
+        UPDATE post_comments SET deleted_at = NOW() WHERE id = #{id}
+    </delete>
+
+    <select id="selectComments" resultType="com.maotuanzi.entity.PostComment">
+        SELECT * FROM post_comments WHERE post_id = #{postId} AND deleted_at IS NULL ORDER BY id ASC
+    </select>
+
+    <insert id="insertReport" parameterType="com.maotuanzi.entity.PostReport" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO post_reports (post_id, user_id, type, reason, status)
+        VALUES (#{postId}, #{userId}, #{type}, #{reason}, #{status})
+    </insert>
+
+    <update id="updateReport" parameterType="com.maotuanzi.entity.PostReport">
+        UPDATE post_reports
+        <set>
+            <if test="status != null">status = #{status},</if>
+            <if test="handledBy != null">handled_by = #{handledBy},</if>
+            <if test="handledRemark != null">handled_remark = #{handledRemark},</if>
+            <if test="handledAt != null">handled_at = #{handledAt},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectReports" resultType="com.maotuanzi.entity.PostReport">
+        SELECT * FROM post_reports
+        <where>
+            <if test="status != null">status = #{status}</if>
+        </where>
+        ORDER BY id DESC LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countReports" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM post_reports
+        <where>
+            <if test="status != null">status = #{status}</if>
+        </where>
+    </select>
+</mapper>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.maotuanzi.mapper.AuditLogMapper">
+    <insert id="insert" parameterType="com.maotuanzi.entity.AuditLog" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO audit_logs (user_id, content_type, content_id, check_type, check_result, reason, operator)
+        VALUES (#{userId}, #{contentType}, #{contentId}, #{checkType}, #{checkResult}, #{reason}, #{operator})
+    </insert>
+
+    <select id="selectRecent" resultType="com.maotuanzi.entity.AuditLog">
+        SELECT * FROM audit_logs
+        <where>
+            <if test="contentType != null and contentType != ''">content_type = #{contentType}</if>
+        </where>
+        ORDER BY id DESC LIMIT #{limit}
+    </select>
+</mapper>

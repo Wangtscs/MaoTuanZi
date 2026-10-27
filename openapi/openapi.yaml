@@ -1,0 +1,981 @@
+openapi: 3.0.3
+info:
+  title: 毛团子AI API
+  version: 1.0.0
+  contact:
+    email: api-support@maotuanzi.ai
+
+servers:
+  - url: https://api.maotuanzi.ai/v1
+    description: 生产
+  - url: http://localhost:3000/v1
+    description: 本地开发
+
+tags:
+  - name: auth
+  - name: user
+  - name: pet
+  - name: ai
+  - name: work
+  - name: upload
+  - name: order
+  - name: vip
+  - name: tool
+  - name: square
+  - name: webhook
+
+# ============================================================
+# 鉴权
+# ============================================================
+paths:
+  /auth/wx-login:
+    post:
+      tags: [auth]
+      summary: 微信一键登录
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, description: wx.login() 返回的 code }
+      responses:
+        '200': { $ref: '#/components/responses/AuthSuccess' }
+        '102001': { $ref: '#/components/responses/Error' }
+
+  /auth/refresh:
+    post:
+      tags: [auth]
+      summary: 刷新 Token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/AuthSuccess' }
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: 登出
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+
+# ============================================================
+# 用户
+# ============================================================
+  /users/me:
+    get:
+      tags: [user]
+      summary: 当前用户信息
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/User' }
+
+  /users/me/cancel:
+    post:
+      tags: [user]
+      summary: 注销账号
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+
+# ============================================================
+# 宠物
+# ============================================================
+  /pets:
+    get:
+      tags: [pet]
+      summary: 宠物列表
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: species, schema: { type: integer, enum: [1, 2, 3] } }
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: page_size, schema: { type: integer, default: 20, maximum: 100 } }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/PetList' }
+    post:
+      tags: [pet]
+      summary: 创建宠物
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PetCreate' }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Pet' }
+
+  /pets/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    get:
+      tags: [pet]
+      summary: 宠物详情
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: ok } }
+    patch:
+      tags: [pet]
+      summary: 更新宠物
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: ok } }
+    delete:
+      tags: [pet]
+      summary: 删除宠物（级联作品）
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: ok } }
+
+# ============================================================
+# AI 任务
+# ============================================================
+  /ai/tasks:
+    post:
+      tags: [ai]
+      summary: 创建 AI 任务
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AiTaskCreate' }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/AiTaskCreated' }
+
+  /ai/tasks/{taskId}:
+    parameters:
+      - { in: path, name: taskId, required: true, schema: { type: string } }
+    get:
+      tags: [ai]
+      summary: 查询任务
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/AiTask' }
+
+  /ai/tasks/{taskId}/cancel:
+    parameters:
+      - { in: path, name: taskId, required: true, schema: { type: string } }
+    post:
+      tags: [ai]
+      summary: 取消任务
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: ok } }
+
+  /ai/styles:
+    get:
+      tags: [ai]
+      summary: 风格列表
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: type, required: true, schema: { type: string } }
+      responses: { '200': { description: ok } }
+
+# ============================================================
+# 上传
+# ============================================================
+  /upload/presign:
+    post:
+      tags: [upload]
+      summary: OSS 预签名
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UploadPresignRequest' }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/UploadPresign' }
+
+# ============================================================
+# 订单与会员
+# ============================================================
+  /products:
+    get:
+      tags: [order]
+      summary: 商品列表
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: ok } }
+
+  /orders:
+    post:
+      tags: [order]
+      summary: 创建订单
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OrderCreate' }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/OrderCreated' }
+
+    get:
+      tags: [order]
+      summary: 我的订单
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: ok } }
+
+  /orders/unified-order:
+    post:
+      tags: [order]
+      summary: 统一下单（微信 / 华为 IAP 双通道，缺凭证时返回 mock 占位参数）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UnifiedOrderRequest' }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/UnifiedOrderResult' }
+
+  /orders/{id}/refund:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    post:
+      tags: [order]
+      summary: 申请退款
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/RefundResult' }
+
+  /vip/me:
+    get:
+      tags: [vip]
+      summary: 我的会员权益
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/VipInfo' }
+
+  /vip/plans:
+    get:
+      tags: [vip]
+      summary: 会员套餐
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/VipPlan' }
+
+  /coupons/claim:
+    post:
+      tags: [order]
+      summary: 领取卡券
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [couponId]
+              properties:
+                couponId: { type: string, description: 卡券 code 或数字 id }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/CouponClaimResult' }
+
+  /share/record:
+    post:
+      tags: [square]
+      summary: 记录一次分享并发放奖励
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channel]
+              properties:
+                postId: { type: integer, nullable: true }
+                channel: { type: string, enum: [WECHAT, MOMENTS, COPY, SYSTEM] }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/ShareRecordResult' }
+
+  /share/invite:
+    post:
+      tags: [square]
+      summary: 绑定邀请码并发放奖励
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [inviterCode]
+              properties:
+                inviterCode: { type: string }
+                inviteeUserId: { type: string }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/ShareInviteResult' }
+
+  /rewards/claim:
+    post:
+      tags: [order]
+      summary: 领取奖励
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rewardId]
+              properties:
+                rewardId: { type: string }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/RewardClaimResult' }
+
+  /user/invite:
+    get:
+      tags: [user]
+      summary: 我的邀请信息（邀请码 / 深链 / 奖励规则）
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/InviteInfo' }
+
+  /ai/3d/tasks:
+    post:
+      tags: [ai]
+      summary: 创建 3D 模型生成任务
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sourceImageUrl]
+              properties:
+                sourceImageUrl: { type: string, format: uri }
+                style: { type: string }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Model3DTaskResult' }
+
+  /ai/3d/tasks/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      tags: [ai]
+      summary: 查询 3D 模型生成任务
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Model3DTaskResult' }
+
+# ============================================================
+# 工具
+# ============================================================
+  /tools/symptom:
+    post:
+      tags: [tool]
+      summary: 症状护理参考
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SymptomQuery' }
+      responses: { '200': { description: ok } }
+
+  /tools/feeding-plan:
+    post:
+      tags: [tool]
+      summary: 生成喂养方案
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FeedingPlanCreate' }
+      responses: { '200': { description: ok } }
+
+  /tools/health-reminders:
+    get:
+      tags: [tool]
+      summary: 健康提醒列表
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: ok } }
+    post:
+      tags: [tool]
+      summary: 创建健康提醒
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HealthReminderCreate' }
+      responses: { '200': { description: ok } }
+
+# ============================================================
+# 广场
+# ============================================================
+  /square/posts:
+    get:
+      tags: [square]
+      summary: 广场帖子流
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: tab, schema: { type: string, enum: [latest, hottest, 3d_zone, challenge] } }
+      responses: { '200': { description: ok } }
+    post:
+      tags: [square]
+      summary: 发帖
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PostCreate' }
+      responses: { '200': { description: ok } }
+
+  /square/posts/{id}/like:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    post:
+      tags: [square]
+      summary: 点赞
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: ok } }
+    delete:
+      tags: [square]
+      summary: 取消点赞
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: ok } }
+
+# ============================================================
+# Webhook
+# ============================================================
+  /webhooks/wx-pay:
+    post:
+      tags: [webhook]
+      summary: 微信支付回调
+      security: []
+      responses: { '200': { description: ok } }
+
+# ============================================================
+# 组件
+# ============================================================
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    Ok:
+      description: ok
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiResponse' }
+    AuthSuccess:
+      description: 登录成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiResponse'
+              - type: object
+                properties:
+                  data: { $ref: '#/components/schemas/LoginResponse' }
+    Error:
+      description: 错误
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiResponse' }
+
+  schemas:
+    # ----- 通用 -----
+    ApiResponse:
+      type: object
+      required: [code, message, trace_id]
+      properties:
+        code: { type: integer, description: 0=成功, 其他见 /docs/设计/06-API接口设计文档.md §6 }
+        message: { type: string }
+        data: { nullable: true }
+        trace_id: { type: string }
+
+    Pagination:
+      type: object
+      properties:
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }
+        has_more: { type: boolean }
+
+    # ----- 鉴权 -----
+    LoginResponse:
+      type: object
+      properties:
+        token: { type: string }
+        refresh_token: { type: string }
+        expires_in: { type: integer, description: 秒 }
+        user: { $ref: '#/components/schemas/User' }
+
+    # ----- 用户 -----
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        openid: { type: string }
+        nickname: { type: string }
+        avatar_url: { type: string, format: uri }
+        status: { type: integer, description: 0=正常 1=封禁 2=注销 }
+        vip_level: { type: integer, description: 0=无 1=月 2=季 3=年 }
+        vip_expire_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    # ----- 宠物 -----
+    Pet:
+      type: object
+      properties:
+        id: { type: integer }
+        user_id: { type: integer }
+        nickname: { type: string }
+        species: { type: integer, description: 1=猫 2=犬 3=其他 }
+        breed_id: { type: integer, nullable: true }
+        breed_name: { type: string, nullable: true }
+        gender: { type: integer, description: 0=未知 1=公 2=母 }
+        birthday: { type: string, format: date, nullable: true }
+        weight_kg: { type: number, nullable: true }
+        is_neutered: { type: boolean }
+        allergies: { nullable: true, type: object }
+        staple_food: { type: string, nullable: true }
+        avatar_url: { type: string, format: uri, nullable: true }
+        remark: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    PetCreate:
+      type: object
+      required: [nickname, species]
+      properties:
+        nickname: { type: string, maxLength: 64 }
+        species: { type: integer, enum: [1, 2, 3] }
+        breed_id: { type: integer }
+        gender: { type: integer }
+        birthday: { type: string, format: date }
+        weight_kg: { type: number }
+        is_neutered: { type: boolean }
+        allergies: { type: object }
+        staple_food: { type: string }
+        avatar_url: { type: string, format: uri }
+
+    PetList:
+      type: object
+      properties:
+        list:
+          type: array
+          items: { $ref: '#/components/schemas/Pet' }
+        pagination: { $ref: '#/components/schemas/Pagination' }
+
+    # ----- AI -----
+    AiTaskCreate:
+      type: object
+      required: [type, image_url]
+      properties:
+        type:
+          type: string
+          enum: [portrait_2d, portrait_3d_fast, portrait_3d_hd, emoji, card, copywriter, name, feeding_plan, symptom]
+        pet_id: { type: integer }
+        style: { type: string }
+        image_url: { type: string, format: uri, description: 已上传到 OSS 的 URL }
+        is_preview: { type: boolean, default: false }
+
+    AiTaskCreated:
+      type: object
+      properties:
+        task_id: { type: string }
+        work_id: { type: integer }
+        status: { type: integer, description: 0=pending 1=processing 2=success 3=failed 4=cancelled }
+        estimated_seconds: { type: integer }
+        cost_quota: { type: integer }
+
+    AiTask:
+      type: object
+      properties:
+        task_id: { type: string }
+        work_id: { type: integer }
+        status: { type: integer }
+        progress: { type: integer, minimum: 0, maximum: 100 }
+        preview_url: { type: string, format: uri, nullable: true }
+        result_url: { type: string, format: uri, nullable: true, description: 付费/会员后才返回 }
+        extra_urls: { nullable: true, type: object }
+        error_code: { type: string, nullable: true }
+        error_msg: { type: string, nullable: true }
+        finished_at: { type: string, format: date-time, nullable: true }
+
+    # ----- 上传 -----
+    UploadPresignRequest:
+      type: object
+      required: [scene, content_type, size]
+      properties:
+        scene:
+          type: string
+          enum: [avatar, pet_avatar, portrait_input, journal]
+        content_type: { type: string }
+        size: { type: integer }
+
+    UploadPresign:
+      type: object
+      properties:
+        upload_url: { type: string, format: uri }
+        object_key: { type: string }
+        final_url: { type: string, format: uri }
+        expires_at: { type: string, format: date-time }
+
+    # ----- 订单 -----
+    OrderCreate:
+      type: object
+      required: [product_id]
+      properties:
+        product_id: { type: string }
+        coupon_id: { type: integer, nullable: true }
+        idempotency_key: { type: string }
+
+    OrderCreated:
+      type: object
+      properties:
+        order_id: { type: integer }
+        order_no: { type: string }
+        amount_cents: { type: integer }
+        pay_amount_cents: { type: integer }
+        wx_pay_params: { type: object }
+        expire_at: { type: string, format: date-time }
+
+    UnifiedOrderRequest:
+      type: object
+      required: [orderId, channel]
+      properties:
+        orderId: { type: integer }
+        channel: { type: string, enum: [WECHAT, HUAWEI] }
+
+    WxPayParams:
+      type: object
+      properties:
+        appId: { type: string }
+        timeStamp: { type: string }
+        nonceStr: { type: string }
+        package: { type: string }
+        signType: { type: string }
+        paySign: { type: string }
+
+    IapParams:
+      type: object
+      properties:
+        productId: { type: string }
+        developerPayload: { type: string }
+        signature: { type: string }
+        signedData: { type: string }
+        iapApiVersion: { type: string }
+
+    UnifiedOrderResult:
+      type: object
+      properties:
+        channel: { type: string, enum: [WECHAT, HUAWEI] }
+        wxPayParams: { $ref: '#/components/schemas/WxPayParams', nullable: true }
+        iapParams: { $ref: '#/components/schemas/IapParams', nullable: true }
+        expireAt: { type: integer, format: int64, description: epoch millis }
+
+    RefundResult:
+      type: object
+      properties:
+        refundId: { type: string }
+        status: { type: string }
+
+    VipInfo:
+      type: object
+      properties:
+        vipLevel: { type: integer, enum: [0, 1, 2, 3] }
+        vipExpireAt: { type: string, format: date-time, nullable: true }
+        benefits:
+          type: array
+          items: { type: string }
+
+    VipPlan:
+      type: object
+      properties:
+        id: { type: string }
+        productType: { type: integer }
+        name: { type: string }
+        priceCents: { type: integer }
+        durationDays: { type: integer }
+        tag: { type: string, nullable: true }
+
+    CouponClaimResult:
+      type: object
+      properties:
+        id: { type: string }
+        status: { type: string }
+
+    RewardBrief:
+      type: object
+      properties:
+        type: { type: string, enum: [COUPON, POINTS] }
+        amount: { type: integer }
+
+    ShareRecordResult:
+      type: object
+      properties:
+        reward: { $ref: '#/components/schemas/RewardBrief', nullable: true }
+        shareCount: { type: integer }
+
+    ShareInviteResult:
+      type: object
+      properties:
+        rewarded: { type: boolean }
+
+    RewardClaimResult:
+      type: object
+      properties:
+        status: { type: string }
+
+    InviteInfo:
+      type: object
+      properties:
+        inviteCode: { type: string }
+        inviteUrl: { type: string }
+        rewardRule: { type: string }
+
+    Model3DTaskResult:
+      type: object
+      properties:
+        taskId: { type: string }
+        status: { type: string, enum: [PENDING, RUNNING, SUCCEEDED, FAILED] }
+        modelUrl: { type: string, format: uri, nullable: true }
+
+    # ----- 工具 -----
+    SymptomQuery:
+      type: object
+      required: [symptom]
+      properties:
+        symptom: { type: string }
+        pet_id: { type: integer }
+        extra: { type: string }
+
+    FeedingPlanCreate:
+      type: object
+      required: [pet_id]
+      properties:
+        pet_id: { type: integer }
+        details: { type: object }
+
+    HealthReminderCreate:
+      type: object
+      required: [pet_id, type, title, next_run_at]
+      properties:
+        pet_id: { type: integer }
+        type: { type: integer, description: 1=疫苗 2=驱虫 3=喂药 4=洗澡 5=体检 6=生日 7=其他 }
+        title: { type: string }
+        cycle_days: { type: integer, nullable: true }
+        next_run_at: { type: string, format: date-time }
+        note: { type: string }
+
+    # ----- 广场 -----
+    PostCreate:
+      type: object
+      required: [content]
+      properties:
+        work_id: { type: integer }
+        content: { type: string, maxLength: 512 }
+        image_urls:
+          type: array
+          items: { type: string, format: uri }
+        topic: { type: string }
+
+    Style:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        cover_url: { type: string, format: uri }
+        is_member_only: { type: boolean }
+        price_cents: { type: integer, nullable: true }

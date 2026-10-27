@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.maotuanzi.mapper.CouponMapper">
+    <select id="selectById" resultType="com.maotuanzi.entity.Coupon">
+        SELECT * FROM coupons WHERE id = #{id}
+    </select>
+
+    <select id="selectByCode" resultType="com.maotuanzi.entity.Coupon">
+        SELECT * FROM coupons WHERE code = #{code} LIMIT 1
+    </select>
+
+    <update id="decrRemain">
+        UPDATE coupons SET remain_count = remain_count - 1 WHERE id = #{id} AND remain_count &gt; 0
+    </update>
+
+    <insert id="insert" parameterType="com.maotuanzi.entity.Coupon" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO coupons (code, name, type, discount_cents, discount_rate, min_amount_cents,
+                             valid_from, valid_to, total_count, remain_count, per_user_limit, scope, is_active)
+        VALUES (#{code}, #{name}, #{type}, #{discountCents}, #{discountRate}, #{minAmountCents},
+                #{validFrom}, #{validTo}, #{totalCount}, #{remainCount}, #{perUserLimit}, #{scope}, #{isActive})
+    </insert>
+
+    <update id="updateById" parameterType="com.maotuanzi.entity.Coupon">
+        UPDATE coupons
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="discountCents != null">discount_cents = #{discountCents},</if>
+            <if test="discountRate != null">discount_rate = #{discountRate},</if>
+            <if test="validFrom != null">valid_from = #{validFrom},</if>
+            <if test="validTo != null">valid_to = #{validTo},</if>
+            <if test="totalCount != null">total_count = #{totalCount},</if>
+            <if test="remainCount != null">remain_count = #{remainCount},</if>
+            <if test="isActive != null">is_active = #{isActive},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectAll" resultType="com.maotuanzi.entity.Coupon">
+        SELECT * FROM coupons
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (code LIKE CONCAT('%', #{keyword}, '%') OR name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY id DESC LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countAll" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM coupons
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (code LIKE CONCAT('%', #{keyword}, '%') OR name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+</mapper>

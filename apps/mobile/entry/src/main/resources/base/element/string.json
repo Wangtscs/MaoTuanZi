@@ -1,0 +1,14 @@
+{
+  "string": [
+    { "name": "home", "value": "首页" },
+    { "name": "ai", "value": "AI 创作" },
+    { "name": "tools", "value": "工具" },
+    { "name": "square", "value": "广场" },
+    { "name": "me", "value": "我的" },
+    { "name": "module_desc", "value": "毛团子AI 主模块" },
+    { "name": "EntryAbility_desc", "value": "毛团子AI 启动入口" },
+    { "name": "EntryAbility_label", "value": "毛团子AI" },
+    { "name": "permission_internet_reason", "value": "用于加载 AI 作品图片和提交创作任务" },
+    { "name": "permission_network_reason", "value": "用于检测网络状态以提升加载体验" }
+  ]
+}

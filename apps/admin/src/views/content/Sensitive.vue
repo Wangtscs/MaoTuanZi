@@ -1,0 +1,1 @@
+<template><div class="page"><h2 class="page-title">敏感词管理</h2><p>敏感词增删改查</p></div></template>

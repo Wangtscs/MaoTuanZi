@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.maotuanzi.mapper.WorkMapper">
+    <resultMap id="BaseResultMap" type="com.maotuanzi.entity.Work">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="pet_id" property="petId"/>
+        <result column="task_id" property="taskId"/>
+        <result column="work_type" property="workType"/>
+        <result column="title" property="title"/>
+        <result column="preview_url" property="previewUrl"/>
+        <result column="result_url" property="resultUrl"/>
+        <result column="thumbnail_url" property="thumbnailUrl"/>
+        <result column="style_id" property="styleId"/>
+        <result column="template_id" property="templateId"/>
+        <result column="status" property="status"/>
+        <result column="is_public" property="isPublic"/>
+        <result column="like_count" property="likeCount"/>
+        <result column="view_count" property="viewCount"/>
+        <result column="preview_expire_at" property="previewExpireAt"/>
+        <result column="extra" property="extra"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="deleted_at" property="deletedAt"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.maotuanzi.entity.Work" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO works (user_id, pet_id, task_id, work_type, title, preview_url, result_url,
+                           thumbnail_url, style_id, template_id, status, is_public, preview_expire_at, extra)
+        VALUES (#{userId}, #{petId}, #{taskId}, #{workType}, #{title}, #{previewUrl}, #{resultUrl},
+                #{thumbnailUrl}, #{styleId}, #{templateId}, #{status}, #{isPublic}, #{previewExpireAt}, #{extra})
+    </insert>
+
+    <update id="updateById" parameterType="com.maotuanzi.entity.Work">
+        UPDATE works
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="previewUrl != null">preview_url = #{previewUrl},</if>
+            <if test="resultUrl != null">result_url = #{resultUrl},</if>
+            <if test="thumbnailUrl != null">thumbnail_url = #{thumbnailUrl},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="isPublic != null">is_public = #{isPublic},</if>
+            <if test="previewExpireAt != null">preview_expire_at = #{previewExpireAt},</if>
+        </set>
+        WHERE id = #{id} AND deleted_at IS NULL
+    </update>
+
+    <update id="softDelete">
+        UPDATE works SET status = 3, deleted_at = #{now} WHERE id = #{id}
+    </update>
+
+    <update id="updateResultUrl">
+        UPDATE works SET result_url = #{url}, status = 2 WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE works SET status = #{status} WHERE id = #{id}
+    </update>
+
+    <update id="incrLike">
+        UPDATE works SET like_count = like_count + #{delta} WHERE id = #{id}
+    </update>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM works WHERE id = #{id} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT * FROM works WHERE user_id = #{userId} AND deleted_at IS NULL
+        <if test="status != null">AND status = #{status}</if>
+        ORDER BY id DESC LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countByUserId" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM works WHERE user_id = #{userId} AND deleted_at IS NULL
+        <if test="status != null">AND status = #{status}</if>
+    </select>
+
+    <select id="selectPublicFeed" resultMap="BaseResultMap">
+        SELECT w.* FROM works w INNER JOIN square_posts sp ON sp.work_id = w.id
+        WHERE w.deleted_at IS NULL AND w.is_public = 1 AND sp.status = 1
+        <if test="topic != null and topic != ''">AND sp.topic = #{topic}</if>
+        ORDER BY w.id DESC LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countPublicFeed" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM works w INNER JOIN square_posts sp ON sp.work_id = w.id
+        WHERE w.deleted_at IS NULL AND w.is_public = 1 AND sp.status = 1
+        <if test="topic != null and topic != ''">AND sp.topic = #{topic}</if>
+    </select>
+</mapper>

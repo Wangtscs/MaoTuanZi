@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.maotuanzi.mapper.AiTaskMapper">
+    <resultMap id="BaseResultMap" type="com.maotuanzi.entity.AiTask">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="task_type" property="taskType"/>
+        <result column="style_id" property="styleId"/>
+        <result column="template_id" property="templateId"/>
+        <result column="pet_id" property="petId"/>
+        <result column="input_image_url" property="inputImageUrl"/>
+        <result column="extra_params" property="extraParams"/>
+        <result column="status" property="status"/>
+        <result column="retry_count" property="retryCount"/>
+        <result column="error_code" property="errorCode"/>
+        <result column="error_message" property="errorMessage"/>
+        <result column="provider" property="provider"/>
+        <result column="provider_task_id" property="providerTaskId"/>
+        <result column="cost_cents" property="costCents"/>
+        <result column="is_charged" property="isCharged"/>
+        <result column="started_at" property="startedAt"/>
+        <result column="finished_at" property="finishedAt"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="deleted_at" property="deletedAt"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.maotuanzi.entity.AiTask" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ai_tasks (user_id, task_type, style_id, template_id, pet_id, input_image_url,
+                              extra_params, status, provider, cost_cents)
+        VALUES (#{userId}, #{taskType}, #{styleId}, #{templateId}, #{petId}, #{inputImageUrl},
+                #{extraParams}, #{status}, #{provider}, #{costCents})
+    </insert>
+
+    <update id="updateById" parameterType="com.maotuanzi.entity.AiTask">
+        UPDATE ai_tasks
+        <set>
+            <if test="status != null">status = #{status},</if>
+            <if test="retryCount != null">retry_count = #{retryCount},</if>
+            <if test="errorCode != null">error_code = #{errorCode},</if>
+            <if test="errorMessage != null">error_message = #{errorMessage},</if>
+            <if test="providerTaskId != null">provider_task_id = #{providerTaskId},</if>
+            <if test="isCharged != null">is_charged = #{isCharged},</if>
+            <if test="startedAt != null">started_at = #{startedAt},</if>
+            <if test="finishedAt != null">finished_at = #{finishedAt},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE ai_tasks SET status = #{status}, error_code = #{errorCode},
+                           error_message = #{errorMessage}, finished_at = #{finishedAt}
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM ai_tasks WHERE id = #{id}
+    </select>
+
+    <select id="selectRunning" resultMap="BaseResultMap">
+        SELECT * FROM ai_tasks WHERE status IN (0, 1) AND started_at &lt; #{now} ORDER BY id ASC
+    </select>
+
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT * FROM ai_tasks WHERE user_id = #{userId} AND deleted_at IS NULL
+        ORDER BY id DESC LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countByUserId" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM ai_tasks WHERE user_id = #{userId} AND deleted_at IS NULL
+    </select>
+
+    <select id="countRunningByUser" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM ai_tasks WHERE user_id = #{userId} AND status IN (0, 1)
+    </select>
+</mapper>
