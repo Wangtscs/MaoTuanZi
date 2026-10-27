@@ -31,6 +31,14 @@ public class PaymentConfig {
     @Value("${maotuanzi.payment.wechat.cert-path:}")
     private String wechatCertPath;
 
+    /** WeChat Pay platform certificate public key (PEM, BEGIN PUBLIC KEY). */
+    @Value("${maotuanzi.payment.wechat.platform-public-key-path:}")
+    private String wechatPlatformPublicKeyPath;
+
+    /** Serial number of the platform certificate matching the configured public key. */
+    @Value("${maotuanzi.payment.wechat.platform-serial-no:}")
+    private String wechatPlatformSerialNo;
+
     // ===== 华为 IAP =====
     @Value("${maotuanzi.payment.huawei.app-id:}")
     private String huaweiAppId;
@@ -58,6 +66,15 @@ public class PaymentConfig {
             return isNotBlank(huaweiAppId) && isNotBlank(huaweiMerchantId) && isNotBlank(huaweiKey);
         }
         return false;
+    }
+
+    /**
+     * Callback verification has a stricter configuration gate than client-side payment setup.
+     * A v3 callback must be authenticated with the platform public key before it can change an order.
+     */
+    public boolean hasWechatCallbackCredentials() {
+        return isNotBlank(wechatApiKey) && isNotBlank(wechatAppId) && isNotBlank(wechatMchId)
+                && isNotBlank(wechatPlatformPublicKeyPath) && isNotBlank(wechatPlatformSerialNo);
     }
 
     private static boolean isNotBlank(String s) {
